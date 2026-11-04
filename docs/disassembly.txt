@@ -1,0 +1,86 @@
+
+led-toggle/Ultimate_2C_v1.09_L4_R4_LED_Toggle.dat:     file format binary
+
+
+Disassembly of section .data:
+
+0000d4e6 <.data+0x7502>:
+    d4e6:	0b0d      	tloadr	r3, [pc, #52]	; (0xd51c)
+    d4e8:	4818      	tloadrb	r0, [r3, #0]
+    d4ea:	a1c0      	tmovs	r1, #192	; 0xc0
+    d4ec:	f049      	tshftls	r1, r1, #1
+    d4ee:	0a0c      	tloadr	r2, [pc, #48]	; (0xd520)
+    d4f0:	900a 9ec0 	tjl	0x18274
+    d4f4:	0b0b      	tloadr	r3, [pc, #44]	; (0xd524)
+    d4f6:	4818      	tloadrb	r0, [r3, #0]
+    d4f8:	090b      	tloadr	r1, [pc, #44]	; (0xd528)
+    d4fa:	0a0c      	tloadr	r2, [pc, #48]	; (0xd52c)
+    d4fc:	97ff 9f36 	tjl	0xd36c
+    d500:	0b0b      	tloadr	r3, [pc, #44]	; (0xd530)
+    d502:	4818      	tloadrb	r0, [r3, #0]
+    d504:	a1c8      	tmovs	r1, #200	; 0xc8
+    d506:	f089      	tshftls	r1, r1, #2
+    d508:	0a0a      	tloadr	r2, [pc, #40]	; (0xd534)
+    d50a:	97ff 9f2f 	tjl	0xd36c
+    d50e:	6d00      	tpop	{pc}
+
+led-toggle/led_toggle.elf:     file format elf32-littletc32
+
+
+Disassembly of section .text:
+
+00018274 <led_gate>:
+   18274:	6570      	tpush	{r4, r5, r6, lr}
+   18276:	0b12      	tloadr	r3, [pc, #72]	; (182c0 <raw_buttons>)
+   18278:	581b      	tloadr	r3, [r3, #0]
+   1827a:	0c12      	tloadr	r4, [pc, #72]	; (182c4 <pair_mask>)
+   1827c:	0023      	tands	r3, r4
+   1827e:	0d12      	tloadr	r5, [pc, #72]	; (182c8 <private_state>)
+   18280:	ab00      	tcmp	r3, #0
+   18282:	c011      	tjeq	182a8 <released>
+   18284:	02a3      	tcmp	r3, r4
+   18286:	c111      	tjne	182ac <partial>
+   18288:	486e      	tloadrb	r6, [r5, #1]
+   1828a:	ae00      	tcmp	r6, #0
+   1828c:	c010      	tjeq	182b0 <apply_gate>
+   1828e:	48ae      	tloadrb	r6, [r5, #2]
+   18290:	b601      	tadds	r6, #1
+   18292:	40ae      	tstorerb	r6, [r5, #2]
+   18294:	ae03      	tcmp	r6, #3
+   18296:	c10b      	tjne	182b0 <apply_gate>
+   18298:	482e      	tloadrb	r6, [r5, #0]
+   1829a:	a401      	tmovs	r4, #1
+   1829c:	0066      	txors	r6, r4
+   1829e:	402e      	tstorerb	r6, [r5, #0]
+   182a0:	a600      	tmovs	r6, #0
+   182a2:	406e      	tstorerb	r6, [r5, #1]
+   182a4:	40ae      	tstorerb	r6, [r5, #2]
+   182a6:	8003      	tj	182b0 <apply_gate>
+
+000182a8 <released>:
+   182a8:	a601      	tmovs	r6, #1
+   182aa:	406e      	tstorerb	r6, [r5, #1]
+
+000182ac <partial>:
+   182ac:	a600      	tmovs	r6, #0
+   182ae:	40ae      	tstorerb	r6, [r5, #2]
+
+000182b0 <apply_gate>:
+   182b0:	482e      	tloadrb	r6, [r5, #0]
+   182b2:	ae00      	tcmp	r6, #0
+   182b4:	c000      	tjeq	182b8 <call_driver>
+   182b6:	a000      	tmovs	r0, #0
+
+000182b8 <call_driver>:
+   182b8:	97f5 9858 	tjl	d36c <original_ring_driver>
+   182bc:	6d70      	tpop	{r4, r5, r6, pc}
+   182be:	46c0      	tstorerb	r0, [r0, #27]
+
+000182c0 <raw_buttons>:
+   182c0:	0084344c 	.word	0x0084344c
+
+000182c4 <pair_mask>:
+   182c4:	06000000 	.word	0x06000000
+
+000182c8 <private_state>:
+   182c8:	00843cf0 	.word	0x00843cf0
