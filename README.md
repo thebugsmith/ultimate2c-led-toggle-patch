@@ -5,10 +5,37 @@ Hold L4 + R4 to toggle the LED ring on/off.
 Tested on and only work with **Ultimate 2C Wireless**. The patch is a byte-level modification of the official firmware  v1.09, and is not compatible with other 2C variants. 
 
 
-## Build it first
+## Install it
+
+One script does everything: `tools/patch-2c-led.py`. It needs no other file from
+this repository — it takes the official v1.09 image (from `stock/` if
+`tools/fetch-stock.py` already put it there, otherwise it downloads it once and
+caches it), applies the patch in memory, and flashes it.
 
 ```console
-$ python tools/fetch-stock.py                        # pulls the official image from 8BitDo
+$ python tools/fetch-stock.py        # optional: cache the official image in stock/
+$ python tools/patch-2c-led.py info      # what is connected, patch installed or not
+$ python tools/patch-2c-led.py update    # build + flash the patch
+$ python tools/patch-2c-led.py verify    # compare the device with the patch
+```
+
+Connect the controller with the USB-C **cable** and unplug the 2.4 GHz adapter —
+over the dongle the tool sees the adapter (`0x301c`) and refuses.
+
+`update` is safe to re-run: it compares block CRCs first, skips identical blocks,
+and reports "already matches" instead of rewriting. `--force` rewrites anyway.
+
+### Rollback
+
+```console
+$ python tools/patch-2c-led.py update --stock --force    # official v1.09 back
+```
+
+## Rebuilding the patch from source
+
+Only needed if you want to check the image rather than trust the script:
+
+```console
 $ python build/build_patch.py "./stock/Ultimate 2C_v1.09_75.dat" ./patches/mine.dat
 $ python build/verify_patch.py "./stock/Ultimate 2C_v1.09_75.dat" ./patches/mine.dat
 PASS: exact rebuild, length, diff scope, both CRCs, cold BSS initialization
@@ -16,37 +43,8 @@ PASS: startup-held pair, 3-sample hold, long hold, full-release rearm, ...
 PASS: single keys, other combos, normal LED states, 5,000 randomized ticks
 ```
 
-## Install the patch
-
-Connect the controller via USB cable, disconnect the adapter.
-
-For linux only: add a udev rule to allow non-root access to the device.
-```
-{ cat <<EOF
-SUBSYSTEM=="hidraw", ATTRS{idVendor}=="2dc8", MODE="0666", GROUP="users", TAG+="uaccess"
-EOF
-} | sudo tee /etc/udev/rules.d/8-bitdo-controller-beta1.rules && sudo udevadm control --reload-rules && sudo udevadm trigger
-```
-Now install it.
-```console
-# 1. check if the pad is connected
-$ python tools/8bitdo-fw.py info        
-
-# 2. flash the included image
-$ python tools/8bitdo-fw.py update \
-      patches/Ultimate_2C_v1.09_L4_R4_LED_Toggle.dat --force -y
-
-# 3. prove it landed
-$ python tools/8bitdo-fw.py verify \
-      patches/Ultimate_2C_v1.09_L4_R4_LED_Toggle.dat
-```
-
-### Rollback
-
-```console
-$ ./tools/fetch-stock.py                        # official v1.09 -> stock/
-$ python tools/8bitdo-fw.py update "stock/Ultimate 2C_v1.09_75.dat" --force -y
-```
+The image `patch-2c-led.py` builds in memory is byte-identical to this one
+(SHA-256 `4ae90a7dd27b5e4e…`).
 
 If a bad flash ever leaves the pad unresponsive: hold **LB + RB** while plugging
 it in, which brings up its bootloader (`2DC8:3208`), and use the official web
