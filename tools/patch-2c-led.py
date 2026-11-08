@@ -252,6 +252,11 @@ def hidraw_nodes():
     return out
 
 
+def use_hidapi():
+    """hidraw on Linux, hidapi everywhere else (and on Linux if /sys is absent)."""
+    return _hidapi is not None and not os.path.isdir("/sys/class/hidraw")
+
+
 class Device:
     def __init__(self, path, out_id, usb_pid, timeout=3.0):
         self.path = path
@@ -260,7 +265,7 @@ class Device:
         self.timeout = timeout
         self.fd = None
         self.handle = None
-        if _hidapi is not None and not path.startswith("/dev/"):
+        if use_hidapi():
             self.handle = _hidapi.device()
             self.handle.open_path(path)
             self.handle.set_nonblocking(0)
@@ -380,7 +385,12 @@ class Device:
 
 def open_pad():
     """Open the interface that speaks the firmware protocol."""
-    if _hidapi is not None and not os.path.isdir("/sys/class/hidraw"):
+    if not use_hidapi() and not os.path.isdir("/sys/class/hidraw"):
+        raise SystemExit(
+            "This platform needs the hidapi package:\n\n"
+            "  py -m pip install hidapi\n\n"
+            "Linux with /dev/hidraw needs nothing extra.")
+    if use_hidapi():
         cands = [d["path"] for d in _hidapi.enumerate(VENDOR)
                  if d["product_id"] == USB_PID]
         if not cands:
@@ -433,7 +443,8 @@ def cmd_info(args):
         v = d.version()
         print(f"device    : 8BitDo Ultimate 2C Wireless (usb {USB_PID:#06x}, "
               f"device {d.read_pid():#06x})")
-        print(f"interface : {d.path}")
+        shown = d.path.decode("utf-8", "replace") if isinstance(d.path, bytes) else d.path
+        print(f"interface : {shown}")
         print(f"firmware  : {v // 100}.{v % 100:02d} (raw {v})")
         if v != 109:
             print("LED patch : needs v1.09 — this pad runs a different version")
