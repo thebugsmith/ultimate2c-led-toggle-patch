@@ -67,7 +67,16 @@ BSS_LITERAL_AT = 0x617C
 STATE = 0x843CF0
 
 API = "https://support.8bitdo.com/restapi/link/v1/client/firmware/select"
-UA = "Mozilla/5.0 (X11; Linux x86_64)"
+# Cloudflare in front of support.8bitdo.com 403s non-browser user agents, and
+# stalls some minimal header sets for ~30 s first. These headers keep it fast.
+HEADERS = {
+    "User-Agent": ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                   "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"),
+    "Accept": "*/*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://web.8bitdo.com/",
+    "Connection": "close",
+}
 
 
 def crc16(data):
@@ -86,13 +95,13 @@ def fetch_stock(version="1.09"):
     body = json.dumps({"firmware_type": 75, "beta": 0}).encode()
     req = urllib.request.Request(
         API, data=body,
-        headers={"Content-Type": "application/json;charset=utf-8", "User-Agent": UA})
+        headers=dict(HEADERS, **{"Content-Type": "application/json;charset=utf-8"}))
     with urllib.request.urlopen(req, timeout=30) as r:
         rows = json.loads(r.read().decode()).get("data") or []
     for e in rows:
         if str(e.get("file_version")) == version:
-            req = urllib.request.Request(e["fileURL"], headers={"User-Agent": UA})
-            with urllib.request.urlopen(req, timeout=120) as r:
+            req = urllib.request.Request(e["fileURL"], headers=HEADERS)
+            with urllib.request.urlopen(req, timeout=20) as r:
                 data = r.read()
             if len(data) != int(e["fileSize"]):
                 raise SystemExit("download size mismatch — try again")
